@@ -1,5 +1,7 @@
 # Simple GO TCP Server to recieve and send MODBUS TCP Packets to CLICK PLCs
 
+*Sending does not work yet :(*
+
 Without building:
 ```
 Usage:
