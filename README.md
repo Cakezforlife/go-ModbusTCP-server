@@ -9,9 +9,17 @@ Usage:
 ```
 
 After building:
+Linux
 ```
 Usage:
-    tcpserver [port]
+    ./tcpserver [port]
+
+    - port: Port number to listen to. Default: 502
+```
+Windows
+```
+Usage:
+    .\tcpserver [port]
 
     - port: Port number to listen to. Default: 502
 ```
