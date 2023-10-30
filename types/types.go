@@ -51,6 +51,23 @@ func (ADU *ModbusADU) ToString() string {
 	return out
 }
 
+func (ADU *ModbusADU) ToBinary() ([]byte, error) {
+	data := &bytes.Buffer{}
+	err := binary.Write(data, binary.BigEndian, &ADU.MBAP)
+	if err != nil {
+		return []byte{}, err
+	}
+	err = binary.Write(data, binary.BigEndian, &ADU.PDU.FunctionCode)
+	if err != nil {
+		return []byte{}, err
+	}
+	err = binary.Write(data, binary.BigEndian, ADU.PDU.Data[:(ADU.MBAP.Length-2)])
+	if err != nil {
+		return []byte{}, err
+	}
+	return data.Bytes(), nil
+}
+
 func ParseMBAPHeader(buffer []byte) (MBAPHeader, error) {
 	if len(buffer) <= 0 || len(buffer) > 7 {
 		return MBAPHeader{}, errors.New("incorrect buffer size")
