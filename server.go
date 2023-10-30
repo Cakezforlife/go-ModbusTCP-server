@@ -14,7 +14,7 @@ func server(args []string) {
 	if len(args) > 1{
 		hostport = ":" + args[1]
 	}
-	fmt.Printf("Starting Server on localhost:%s\n", hostport)
+	fmt.Printf("Starting Server on localhost%s\n", hostport)
 
 	// Listen on socket at port {hostport}
 	l, err := net.Listen("tcp", hostport)
