@@ -50,6 +50,7 @@ func main() {
 				break
 			}
 			fmt.Printf("%v\n", ADU.ToString())
+			c.Write(data)
 		}
 	}
 }
