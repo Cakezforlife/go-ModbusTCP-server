@@ -4,6 +4,9 @@ import (
 	"os"
 	"fmt"
 	"net"
+	"tcpserver/types"
+	"tcpserver/helper"
+	"time"
 )
 
 func client(args []string) {
@@ -18,20 +21,21 @@ func client(args []string) {
 	host := fmt.Sprintf("%s:%s", args[1], args[2])
 	fmt.Println("Starting Client connection to", host)
 
-	c, err := net.Dial("TCP", host)
+	c, err := net.Dial("tcp", host)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error connecting to host %v\n", err)
+		os.Exit(1)
 	}
 
 	responseMBAP := types.MBAPHeader{
-		TransactionIdentifier: ADU.MBAP.TransactionIdentifier,
-		ProtocolIdentifier: ADU.MBAP.ProtocolIdentifier,
-		Length: 4,
+		TransactionIdentifier: 1,
+		ProtocolIdentifier: 0,
+		Length: 6,
 		UnitIdentifier: 2,
 	}
 	responsePDU := types.ModbusPDU {
 		FunctionCode: 6,
-		Data: []byte{1,1},
+		Data: []byte{0,0,0,1},
 	}
 	responseADU := types.ModbusADU{MBAP: responseMBAP, PDU: responsePDU}
 	fmt.Printf("Sending: %s\n", responseADU.ToString())
@@ -40,7 +44,29 @@ func client(args []string) {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ToBinary Failed %v", err)
 	}
-	fmt.Printf("%v\n", helper.FormatByteSliceAsHexSliceString(responseBytes))
+	fmt.Printf("%v\n\n", helper.FormatByteSliceAsHexSliceString(responseBytes))
 
 	c.Write(responseBytes)
+
+
+	data := make([]byte, 260) // ModbusTCP frames have a cap of 260 bytes
+	size, err := c.Read(data)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error Recieving Data\n%v\n", err)
+		os.Exit(1)
+	}
+	if size <= 0 {
+		fmt.Fprintf(os.Stderr, "Recieved no Data\n%v\n", data)
+		os.Exit(1)
+	}
+
+	t := time.Now()	// prints time to console
+	time := t.Format(time.ANSIC)
+	fmt.Printf("Recieved at %s\n%s\n", time, helper.FormatByteSliceAsHexSliceString(data))
+
+	ADU, err := types.ParseModbusADU(data)	// sends data to function that returns decoded MODBUS frame
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error Parsing Data: %v\n", err)
+	}
+	fmt.Printf("%v\n", ADU.ToString())
 }
