@@ -9,12 +9,12 @@ import (
 	"time"
 )
 
-func main() {
-	args := os.Args
+func server(args []string) {
 	hostport := ":502"
 	if len(args) > 1{
 		hostport = ":" + args[1]
 	}
+	fmt.Printf("Starting Server on localhost:%s\n", hostport)
 
 	// Listen on socket at port {hostport}
 	l, err := net.Listen("tcp", hostport)
@@ -73,7 +73,7 @@ func connectionRoutine(c net.Conn) {
 				UnitIdentifier: 2,
 			}
 			responsePDU := types.ModbusPDU {
-				FunctionCode: 1,
+				FunctionCode: 2,
 				Data: []byte{1,1},
 			}
 			responseADU := types.ModbusADU{MBAP: responseMBAP, PDU: responsePDU}
