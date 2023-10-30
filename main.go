@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"time"
-	"tcpserver/types"
 	"tcpserver/helper"
+	"tcpserver/types"
+	"time"
 )
 
 func main() {
@@ -28,6 +28,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error Accepting Connection\n%v\n", err)
 			os.Exit(1)
 		}
+		fmt.Printf("Connection From: %v\n", c.RemoteAddr())
 		for {
 			data := make([]byte, 260)
 			size, err := c.Read(data)
@@ -50,7 +51,30 @@ func main() {
 				break
 			}
 			fmt.Printf("%v\n", ADU.ToString())
-			c.Write(data)
+
+			if (ADU.PDU.FunctionCode == 2){
+				responseMBAP := types.MBAPHeader{
+					TransactionIdentifier: ADU.MBAP.TransactionIdentifier,
+					ProtocolIdentifier: ADU.MBAP.ProtocolIdentifier,
+					Length: 4,
+					UnitIdentifier: 2,
+				}
+				responsePDU := types.ModbusPDU {
+					FunctionCode: 1,
+					Data: []byte{1,1},
+				}
+				responseADU := types.ModbusADU{MBAP: responseMBAP, PDU: responsePDU}
+				fmt.Printf("Sending: %s\n", responseADU.ToString())
+				responseBytes, err := responseADU.ToBinary()
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "ToBinary Failed %v", err)
+				}
+				fmt.Printf("%v\n", helper.FormatByteSliceAsHexSliceString(responseBytes))
+				c.Write(responseBytes)
+			}else{
+				c.Write(data)
+			}
+			
 		}
 	}
 }
