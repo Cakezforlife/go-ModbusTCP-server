@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"os"
 	"tcpserver/helper"
 )
  
@@ -51,6 +52,12 @@ func (ADU *ModbusADU) ToString() string {
 	return out
 }
 
+/*
+	Encodes the ModbusADU struct into the binary structure used in MODBUSTCP transactions
+	Encodes individually the MBAP, PDU, and PDU.DATA
+	Puts encodings into data buffer and returns it
+	On error: returns empty []byte and passes through binary error
+*/
 func (ADU *ModbusADU) ToBinary() ([]byte, error) {
 	data := &bytes.Buffer{}
 	err := binary.Write(data, binary.BigEndian, &ADU.MBAP)
@@ -68,6 +75,11 @@ func (ADU *ModbusADU) ToBinary() ([]byte, error) {
 	return data.Bytes(), nil
 }
 
+/*
+	Reads bytes from buffer of a fixed length
+	Parses MBAP Header and returns it
+	on error: Returns empty MBAP and errors
+*/
 func ParseMBAPHeader(buffer []byte) (MBAPHeader, error) {
 	if len(buffer) <= 0 || len(buffer) > 7 {
 		return MBAPHeader{}, errors.New("incorrect buffer size")
@@ -76,37 +88,57 @@ func ParseMBAPHeader(buffer []byte) (MBAPHeader, error) {
 	reader := bytes.NewReader(buffer)
 	err := binary.Read(reader, binary.BigEndian, &MBAP)
 	if err != nil {
-		return MBAP, errors.New("error parsing from buffer")
+		return MBAP, err
 	}
 	return MBAP, nil
 }
 
+/*
+	Reads butes from buffer using a []byte and predetermined length
+	Parses FunctionCode and Data and puts it into a PDU
+	on error: Returns empty ModbusPDU and errors
+*/
+func ParseModbusPDU(buffer []byte, length int16) (ModbusPDU, error){
+	var PDU ModbusPDU
+	reader := bytes.NewReader(buffer[7:])
+	fc, err := reader.ReadByte()
+	if err != nil {
+		return ModbusPDU{}, err
+	}
+	PDU.FunctionCode = fc
+	
+	tempbuffer := make([]byte, length-2)
+	_, err = reader.Read(tempbuffer)
+	if err != nil {
+		return ModbusPDU{}, err
+	}
+	PDU.Data = tempbuffer
+
+	return PDU, nil
+}
+
+/*
+	Creates a ModbusADU
+	First parses an MBAP Header, then a Modbus PDU
+	Takes the two and combines them
+*/
 func ParseModbusADU(buffer []byte) (ModbusADU, error) {
 	if len(buffer) < 7 {
 		return ModbusADU{}, errors.New("not enough data")
 	}
 
-	MBAP, _ := ParseMBAPHeader(buffer[:7])
+	MBAP, err := ParseMBAPHeader(buffer[:7])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error Parsing MBAP: %v", err)
+	}
 	if len(buffer) == 7 {
 		return ModbusADU{MBAP,ModbusPDU{}}, nil
 	}
 	
-	var PDU ModbusPDU
-	reader := bytes.NewReader(buffer[7:])
-	fc, err := reader.ReadByte()
+	PDU, err := ParseModbusPDU(buffer[7:], MBAP.Length)
 	if err != nil {
-		return ModbusADU{MBAP,ModbusPDU{}}, err
+		fmt.Fprintf(os.Stderr, "Error Parsing PDU: %v", err)
 	}
-	PDU.FunctionCode = fc
-	
-	tempbuffer := make([]byte, MBAP.Length-2)
-	_, err = reader.Read(tempbuffer)
-	if err != nil {
-		return ModbusADU{MBAP,ModbusPDU{}}, err
-	}
-	PDU.Data = tempbuffer
 
-	ADU := ModbusADU{MBAP, PDU}
-
-	return ADU, nil
+	return ModbusADU{MBAP, PDU}, nil
 }
