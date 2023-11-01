@@ -135,7 +135,7 @@ func ParseModbusADU(buffer []byte) (ModbusADU, error) {
 		return ModbusADU{MBAP,ModbusPDU{}}, nil
 	}
 	
-	PDU, err := ParseModbusPDU(buffer[7:], MBAP.Length)
+	PDU, err := ParseModbusPDU(buffer, MBAP.Length)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error Parsing PDU: %v", err)
 	}

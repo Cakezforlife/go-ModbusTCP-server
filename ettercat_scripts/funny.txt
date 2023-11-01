@@ -1,0 +1,4 @@
+if (ip.src == '169.254.143.159') {
+	msg("dropping packet");
+	drop();
+}

