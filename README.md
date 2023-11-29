@@ -3,19 +3,19 @@
 Sending works! yay
 
 
-##How to build:
+## How to build:
 ```
 go build
 ```
 
-##Usage:
-###Server
+## Usage:
+### Server
 ```
     ./tcpserver [port]
 
     - port: Port number to listen to. Default: 502
 ```
-###Client
+### Client
 ```
     ./tcpserver [ip] [port] [ddos]
 
