@@ -12,7 +12,7 @@ import (
 	"tcpserver/types"
 )
 
-var NUM_GOROUTINES = 1
+var NUM_GOROUTINES = 50
 
 var wg sync.WaitGroup
 
@@ -68,7 +68,7 @@ func client(args []string) {
 	}
 	fmt.Printf("%v\n\n", helper.FormatByteSliceAsHexSliceString(responseBytes))
 
-	if args[3] == "ddos" {
+	if args[3] == "dos" {
 		wg.Add(NUM_GOROUTINES)
 	
 		oldsetting := runtime.GOMAXPROCS(12)
@@ -76,12 +76,33 @@ func client(args []string) {
 
 		for i := 0; i < NUM_GOROUTINES; i++ {
 			go dos(responseBytes, c)
-			fmt.Printf("Started goroutine %d!!\n", i)
+			fmt.Printf("Started Thread %d!!\n", i)
 		}
 
 		wg.Wait()
 	} else {
 		c.Write(responseBytes)
+
+		data := make([]byte, 260) // ModbusTCP frames have a cap of 260 bytes
+		size, err := c.Read(data)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error Recieving Data\n%v\n", err)
+			os.Exit(1)
+		}
+		if size <= 0 {
+			fmt.Fprintf(os.Stderr, "Recieved no Data\n%v\n", data)
+			os.Exit(1)
+		}
+
+		t := time.Now()	// prints time to console
+		time := t.Format(time.ANSIC)
+		fmt.Printf("Recieved at %s\n%s\n", time, helper.FormatByteSliceAsHexSliceString(data))
+
+		ADU, err := types.ParseModbusADU(data)	// sends data to function that returns decoded MODBUS frame
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error Parsing Data: %v\n", err)
+		}
+		fmt.Printf("%v\n", ADU.ToString())
 	}
 
 
