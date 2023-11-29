@@ -11,6 +11,7 @@ func main() {
 		server(args)
 		return
 	} else if len(args) > 2 {
+		args = append(args, "noddos");
 		client(args)
 		return
 	}
