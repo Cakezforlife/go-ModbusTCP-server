@@ -1,27 +1,25 @@
 # Simple GO TCP Server to recieve and send MODBUS TCP Packets to CLICK PLCs
 
-*Sending does not work yet :(*
+Sending works! yay
 
-Without building:
+
+##How to build:
 ```
-Usage:
-    go run . [port]
-
-    - port: Port number to listen to. Default: 502
+go build
 ```
 
-After building:
-Linux
+##Usage:
+###Server
 ```
-Usage:
     ./tcpserver [port]
 
     - port: Port number to listen to. Default: 502
 ```
-Windows
+###Client
 ```
-Usage:
-    .\tcpserver [port]
+    ./tcpserver [ip] [port] [ddos]
 
-    - port: Port number to listen to. Default: 502
+    - ip: ip to send packets to
+    - port: port server is listening on
+    - ddos: activated ddos, option is "ddos"
 ```
